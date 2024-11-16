@@ -1,13 +1,13 @@
 <template>
   <div v-if="isOpen" class="modal-container">
     <div class="modal-content">
-      <h3 class="modal-title text-center mb-4 fw-bold">Update Port</h3>
+      <h3 class="modal-title text-center mb-4 fw-bold">Update Port-Channel</h3>
 
       <!-- Port Name (non modifiable) -->
       <div class="form-group row mb-3 align-items-center">
         <label class="col-4 text-end">Port</label>
         <div class="col-8">
-          <input type="text" :value="selectedPort" class="form-control" disabled />
+          <input type="text" :value="selectedPort" class="form-control" disabled/>
         </div>
       </div>
 
@@ -15,7 +15,7 @@
       <div class="form-group row mb-3 align-items-center">
         <label class="col-4 text-end">Description</label>
         <div class="col-8">
-          <input type="text" v-model="localDescription" class="form-control" @input="updateDescription" />
+          <input type="text" v-model="localDescription" class="form-control"/>
         </div>
       </div>
 
@@ -27,14 +27,14 @@
             <button
                 class="btn btn-option"
                 :class="{ 'btn-primary': localPortStatus === 'Enabled' }"
-                @click="updatePortStatus('Enabled')"
+                @click="localPortStatus = ('Enabled')"
             >
               Enabled
             </button>
             <button
                 class="btn btn-option"
                 :class="{ 'btn-primary': localPortStatus === 'Disabled' }"
-                @click="updatePortStatus('Disabled')"
+                @click="localPortStatus = ('Disabled')"
             >
               Disabled
             </button>
@@ -50,14 +50,14 @@
             <button
                 class="btn btn-option"
                 :class="{ 'btn-primary': localPortType === 'Trunk' }"
-                @click="updatePortType('Trunk')"
+                @click="localPortType = 'Trunk'"
             >
               Trunk
             </button>
             <button
                 class="btn btn-option"
                 :class="{ 'btn-primary': localPortType === 'Access' }"
-                @click="updatePortType('Access')"
+                @click="localPortType = ('Access')"
             >
               Access
             </button>
@@ -70,13 +70,13 @@
         <div class="form-group row mb-3 align-items-center">
           <label class="col-4 text-end">Native VLAN</label>
           <div class="col-8">
-            <input type="text" v-model="localNativeVlan" class="form-control" @input="updateNativeVlan" />
+            <input type="text" v-model="localNativeVlan" class="form-control"/>
           </div>
         </div>
         <div class="form-group row mb-3 align-items-center">
           <label class="col-4 text-end">Allowed VLANs</label>
           <div class="col-8">
-            <input type="text" v-model="localAllowedVlans" class="form-control" @input="updateAllowedVlans" />
+            <input type="text" v-model="localAllowedVlans" class="form-control"/>
           </div>
         </div>
       </div>
@@ -86,7 +86,7 @@
         <div class="form-group row mb-3 align-items-center">
           <label class="col-4 text-end">VLAN</label>
           <div class="col-8">
-            <input type="text" v-model="localVlan" class="form-control" @input="updateVlan" />
+            <input type="text" v-model="localVlan" class="form-control"/>
           </div>
         </div>
       </div>
@@ -123,30 +123,19 @@ export default {
     };
   },
   methods: {
-    updateDescription() {
-      this.$emit('update:description', this.localDescription);
-    },
-    updatePortStatus(status) {
-      this.localPortStatus = status;
-      this.$emit('update:portStatus', status);
-    },
-    updatePortType(type) {
-      this.localPortType = type;
-      this.$emit('update:portType', type);
-    },
-    updateNativeVlan() {
-      this.$emit('update:nativeVlan', this.localNativeVlan);
-    },
-    updateAllowedVlans() {
-      this.$emit('update:allowedVlans', this.localAllowedVlans);
-    },
-    updateVlan() {
-      this.$emit('update:vlan', this.localVlan);
-    },
     close() {
       this.$emit('close');
     },
     updatePort() {
+      this.$emit('update', {
+        description: this.localDescription,
+        portStatus: this.localPortStatus,
+        portType: this.localPortType,
+        nativeVlan: this.localNativeVlan,
+        allowedVlans: this.localAllowedVlans,
+        vlan: this.localVlan,
+      });
+
       this.close();
     }
   }

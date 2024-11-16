@@ -39,6 +39,7 @@
         :nativeVlan="nativeVlan"
         :allowedVlans="allowedVlans"
         :vlan="vlan"
+        @update="updatePSettings"
         @close="showPSettings = false"
     />
     <ManagementSettingsModal
@@ -50,7 +51,21 @@
         :dhcp="dhcp"
         :IP="IP"
         :mask="mask"
+        @update="updateMSettings"
         @close="showMSettings = false"
+    />
+    <POSettingsModal
+        v-if="showPOSettings"
+        :isOpen="showPOSettings"
+        :selectedPort="selectedPort"
+        :description="description"
+        :portStatus="portStatus"
+        :portType="portType"
+        :nativeVlan="nativeVlan"
+        :allowedVlans="allowedVlans"
+        :vlan="vlan"
+        @update="updatePOSettings"
+        @close="showPOSettings = false"
     />
   </div>
 </template>
@@ -60,6 +75,7 @@ import PortSettingsComponent from '../modal/PortSettingsModal.vue';
 import {usePortStore} from '@/stores/portStore';
 import {getShortPortName, sendEapiRequest} from '@/js/EAPI'
 import ManagementSettingsModal from "@/modal/ManagementSettingsModal.vue";
+import POSettingsModal from "@/modal/POSettingsModal.vue";
 
 let portStore;
 
@@ -67,7 +83,7 @@ export default {
   setup() {
     portStore = usePortStore();
   },
-  components: {ManagementSettingsModal, PortSettingsComponent},
+  components: {POSettingsModal, ManagementSettingsModal, PortSettingsComponent},
   props: {
     auth: {
       type: Object,
@@ -80,6 +96,7 @@ export default {
       orderedPorts: {top: [], bottom: []},
       showPSettings: false,
       showMSettings: false,
+      showPOSettings: false,
       selectedPort: null,
       description: null,
       portStatus: null,
@@ -119,6 +136,15 @@ export default {
       } catch (error) {
         console.error('Error while loading ports:', error);
       }
+    },
+    updatePSettings(data) {
+      console.log(data.vlan)
+    },
+    updateMSettings(data) {
+      console.log(data.mask)
+    },
+    updatePOSettings(data) {
+      console.log(data.vlan)
     },
     handleClick(event, port) {
       event.preventDefault();
@@ -185,7 +211,6 @@ export default {
       const ethernetPorts = ports
           .filter(port => port.startsWith('Ethernet'))
           .sort((a, b) => parseInt(a.replace('Ethernet', '')) - parseInt(b.replace('Ethernet', '')));
-      const portChannels = ports.filter(port => port.startsWith('Port-Channel')).sort();
       const managementPort = ports.find(port => port.startsWith('Management'));
 
       const topRow = ethernetPorts.filter(port => {
@@ -197,11 +222,6 @@ export default {
         const portNumber = parseInt(port.replace('Ethernet', ''), 10);
         return portNumber % 2 === 0;
       });
-
-      const topPortChannels = portChannels.slice(0, 2);
-      const bottomPortChannels = portChannels.slice(2, 4);
-      topRow.push(...topPortChannels);
-      bottomRow.push(...bottomPortChannels);
 
       if (managementPort) {
         bottomRow.push(managementPort);
@@ -244,21 +264,47 @@ export default {
 
     getPortColor(port) {
       const channel = this.portChannelMembers[port];
-      return this.portChannelColors[channel] || '#2c2c2c'; // Couleur par défaut
+      return this.portChannelColors[channel] || '#2c2c2c';
     },
 
     async fetchPortInfo(port, isPortChannel) {
       try {
         if (isPortChannel) {
-          console.log("handle PO")
+          let str = port
+          this.findPortColleagues(port).forEach((p) => {
+            str += "," + p
+          })
+          this.selectedPort = str
+          this.showPOSettings = true;
         } else {
           let number;
           if (String(port).includes('Ethernet')) {
+
             number = parseInt(port.match(/\d+$/)?.[0], 10);
-          } else if (String(port).includes('Port-Channel')) {
-            number = 48 + parseInt(port.match(/\d+$/)?.[0], 10);
-          } else {
-            //Handle that
+
+            const response = await sendEapiRequest(this.auth, [`show interfaces ${port}`, `show interfaces ethernet ${number} trunk`]);
+
+            const portInfo = response[0].interfaces[`${port}`]
+            const switchMode = response[1].trunks[`${port}`]
+
+            if (switchMode.portMode === "access") {
+              this.portType = "Access"
+              this.vlan = String(switchMode.nativeVlan)
+            } else {
+              this.portType = "Trunk"
+              this.allowedVlans = [...switchMode.allowedVlans.vlanIds].toString()
+            }
+            if (portInfo.interfaceStatus === "disabled") {
+              this.portStatus = "Disabled"
+            } else {
+              this.portStatus = "Enabled";
+            }
+
+            this.description = portInfo.description;
+            this.selectedPort = port;
+            this.showPSettings = true;
+          } else if(String(port).includes('Management')){
+            //Handle MGMT
             const response = await sendEapiRequest(this.auth, [`enable`, `configure`, `interface ${port}`, `show ip interface`]);
             const portInfo = response[response.length - 1].interfaces["Management1"]
 
@@ -275,33 +321,9 @@ export default {
             }
 
             this.description = portInfo.description
-
             this.selectedPort = port;
             this.showMSettings = true;
-            return false;
           }
-
-          const response = await sendEapiRequest(this.auth, [`show interfaces ${port}`, `show interfaces ethernet ${number} trunk`]);
-
-          const portInfo = response[0].interfaces[`${port}`]
-          const switchMode = response[1].trunks[`${port}`]
-
-          if (switchMode.portMode === "access") {
-            this.portType = "Access"
-            this.vlan = String(switchMode.nativeVlan)
-          } else {
-            this.portType = "Trunk"
-            this.allowedVlans = [...switchMode.allowedVlans.vlanIds].toString()
-          }
-          if (portInfo.interfaceStatus === "disabled") {
-            this.portStatus = "Disabled"
-          } else {
-            this.portStatus = "Enabled";
-          }
-
-          this.description = portInfo.description;
-          this.selectedPort = port;
-          this.showPSettings = true;
 
         }
       } catch (error) {

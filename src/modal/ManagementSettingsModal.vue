@@ -1,7 +1,7 @@
 <template>
   <div v-if="isOpen" class="modal-container">
     <div class="modal-content">
-      <h3 class="modal-title text-center mb-4 fw-bold">Update Port</h3>
+      <h3 class="modal-title text-center mb-4 fw-bold">Update Management Port</h3>
 
       <!-- Port Name (non modifiable) -->
       <div class="form-group row mb-3 align-items-center">
@@ -15,7 +15,7 @@
       <div class="form-group row mb-3 align-items-center">
         <label class="col-4 text-end">Description</label>
         <div class="col-8">
-          <input type="text" v-model="localDescription" class="form-control" @input="updateDescription"/>
+          <input type="text" v-model="localDescription" class="form-control"/>
         </div>
       </div>
 
@@ -27,14 +27,14 @@
             <button
                 class="btn btn-option"
                 :class="{ 'btn-primary': localPortStatus === 'Enabled' }"
-                @click="updatePortStatus('Enabled')"
+                @click="localPortStatus = ('Enabled')"
             >
               Enabled
             </button>
             <button
                 class="btn btn-option"
                 :class="{ 'btn-primary': localPortStatus === 'Disabled' }"
-                @click="updatePortStatus('Disabled')"
+                @click="localPortStatus = ('Disabled')"
             >
               Disabled
             </button>
@@ -50,14 +50,14 @@
             <button
                 class="btn btn-option"
                 :class="{ 'btn-primary': localDHCP === true }"
-                @click="updateDHCP(true)"
+                @click="localPortStatus = true"
             >
               Enabled
             </button>
             <button
                 class="btn btn-option"
                 :class="{ 'btn-primary': localDHCP === false }"
-                @click="updateDHCP(false)"
+                @click="localPortStatus = false"
             >
               Disabled
             </button>
@@ -70,13 +70,13 @@
         <div class="form-group row mb-3 align-items-center">
           <label class="col-4 text-end">IP</label>
           <div class="col-8">
-            <input type="text" v-model="localIP" class="form-control" @input="updateIP" />
+            <input type="text" v-model="localIP" class="form-control"/>
           </div>
         </div>
         <div class="form-group row mb-3 align-items-center">
           <label class="col-4 text-end">Mask</label>
           <div class="col-8">
-            <input type="text" v-model="localMask" class="form-control" @input="updateMask" />
+            <input type="text" v-model="localMask" class="form-control"/>
           </div>
         </div>
       </div>
@@ -112,28 +112,17 @@ export default {
     };
   },
   methods: {
-    updateDescription(description) {
-      this.$emit('update:description', this.localDescription);
-    },
-    updatePortStatus(status) {
-      this.localPortStatus = status;
-      this.$emit('update:portStatus', status);
-    },
-    updateIP(IP) {
-      this.$emit('update:IP', IP);
-    },
-    updateMask(mask) {
-      this.localMask = mask;
-      this.$emit('update:mask', mask);
-    },
-    updateDHCP(dhcp) {
-      this.localDHCP = dhcp;
-      this.$emit('update:DHCP', dhcp);
-    },
     close() {
       this.$emit('close');
     },
     updatePort() {
+      this.$emit('update', {
+        description: this.localDescription,
+        portStatus: this.localPortStatus,
+        IP: this.localIP,
+        mask: this.localMask,
+        DHCP: this.localDHCP,
+      });
       this.close();
     }
   }
